@@ -7,7 +7,7 @@ Created on Tue Aug 19 22:41:10 2025
 
 import os
 import json
-# import cv2
+import cv2
 import numpy as np
 from flask import Flask, request, jsonify
 from deepface import DeepFace
@@ -16,7 +16,9 @@ import logging
 from datetime import datetime
 import requests
 
-
+HAAR_PATH = cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
+face_cascade = cv2.CascadeClassifier(HAAR_PATH)
+if face_cascade.empty(): raise RuntimeError("Falha ao carregar Haar Cascade. Verifique instalação do OpenCV.")
 
 logging.basicConfig(
     filename="api_usage.log",
@@ -41,20 +43,12 @@ def require_api_key(f):
         return jsonify({"error": "Unauthorized"}), 401
     return decorated
 
-
-# -----------------------------------------------------------------------------
-# Inicialização: carrega Haar Cascade e pré-carrega modelos do DeepFace
-# -----------------------------------------------------------------------------
-# Usa o arquivo Haar do OpenCV instalado (evita baixar XML manualmente)
-HAAR_PATH = cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
-face_cascade = cv2.CascadeClassifier(HAAR_PATH)
-if face_cascade.empty():
-    raise RuntimeError("Falha ao carregar Haar Cascade. Verifique instalação do OpenCV.")
-
-
 # Função utilitária: maior rosto detectado (assumimos 1 pessoa na foto)
 def largest_face_bbox(gray_img):
-    # Ajuste fino: scaleFactor e minNeighbors influenciam recall/precision
+    """
+    Detecta o maior rosto em uma imagem em escala de cinza.
+    Ajuste fino: scaleFactor e minNeighbors influenciam recall/precision.
+    """
     faces = face_cascade.detectMultiScale(
         gray_img,
         scaleFactor=1.1,
@@ -62,20 +56,30 @@ def largest_face_bbox(gray_img):
         minSize=(60, 60),
         flags=cv2.CASCADE_SCALE_IMAGE
     )
+
     if len(faces) == 0:
         return None
-    # pega o maior retângulo (área)
+
+    # Pega o maior retângulo (pela área w*h)
     x, y, w, h = max(faces, key=lambda r: r[2] * r[3])
     return int(x), int(y), int(w), int(h)
 
 def decode_image(file_storage):
-    # Lê bytes e decodifica em array BGR (OpenCV)
+    """
+    Lê bytes de um arquivo e decodifica em arrays OpenCV:
+    - BGR (original OpenCV)
+    - RGB (útil para bibliotecas de visão)
+    - Gray (escala de cinza, útil para detecção)
+    """
     file_bytes = np.frombuffer(file_storage.read(), np.uint8)
     bgr = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
+
     if bgr is None:
         raise ValueError("Não foi possível decodificar a imagem.")
+
     rgb = cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB)
     gray = cv2.cvtColor(bgr, cv2.COLOR_BGR2GRAY)
+
     return bgr, rgb, gray
 
 def send_log_to_supabase(log_data):

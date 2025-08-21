@@ -2,3 +2,4 @@
 api_usage.log
 models/
 *.h5
+__pycache__
