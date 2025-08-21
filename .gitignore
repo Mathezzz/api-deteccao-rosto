@@ -1,0 +1,4 @@
+.env
+api_usage.log
+models/
+*.h5
