@@ -7,7 +7,7 @@ Created on Tue Aug 19 22:41:10 2025
 
 import os
 import json
-import cv2
+# import cv2
 import numpy as np
 from flask import Flask, request, jsonify
 from deepface import DeepFace
