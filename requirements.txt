@@ -2,6 +2,8 @@ opencv-python-headless==4.10.0.84
 flask==3.1.1
 numpy==1.23.5
 deepface==0.0.95
+tensorflow==2.10.0
+keras==2.10.0
 requests==2.32.5
 gunicorn==22.0.0
 setuptools
